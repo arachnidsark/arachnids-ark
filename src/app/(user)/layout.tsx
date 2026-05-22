@@ -16,7 +16,7 @@ import { useModules } from '@/hooks/use-modules';
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isAuthenticated, isLoading, logout } = useAuthStore();
+  const { user, isAuthenticated, isLoading, logout, viewMode } = useAuthStore();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -34,7 +34,8 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
 
     // Module visibility guard - Admins bypass this, users are restricted
     if (!isLoading && mounted) {
-      const isModuleDisabled = user?.role !== 'admin' && (
+      const isUserView = user?.role !== 'admin' || viewMode === 'user';
+      const isModuleDisabled = isUserView && (
         (pathname.startsWith('/shop') && !isVisible('products')) ||
         (pathname.startsWith('/courses') && !isVisible('courses')) ||
         (pathname.startsWith('/consultation') && !isVisible('consultations')) ||
@@ -44,7 +45,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
 
       setHasAccessError(!!isModuleDisabled);
     }
-  }, [pathname, isVisible, router, isLoading, user, mounted]);
+  }, [pathname, isVisible, router, isLoading, user, viewMode, mounted]);
 
   const [hasAccessError, setHasAccessError] = useState(false);
 

@@ -48,6 +48,7 @@ export async function POST(request: Request) {
 
     // Filter qualifying items based on `applicableTo` and `applicableCategories`
     let qualifyingSubtotal = 0;
+    let qualifyingQuantity = 0;
     let hasQualifyingItem = false;
 
     // Fetch product details for category restriction verification
@@ -66,13 +67,18 @@ export async function POST(request: Request) {
     for (const item of cartItems) {
       let qualifies = true;
 
-      if (coupon.applicableTo !== 'all') {
+      // Check exclusions first
+      if (item.type === 'product' && coupon.excludedProductIds?.includes(item.id)) qualifies = false;
+      if (item.type === 'course' && coupon.excludedCourseIds?.includes(item.id)) qualifies = false;
+      if (item.type === 'consultation' && coupon.excludedConsultationIds?.includes(item.id)) qualifies = false;
+
+      if (qualifies && coupon.applicableTo !== 'all') {
         if (item.type !== coupon.applicableTo) {
           qualifies = false;
         }
       }
 
-      if (qualifies && item.type === 'product' && coupon.applicableCategories.length > 0) {
+      if (qualifies && item.type === 'product' && coupon.applicableCategories && coupon.applicableCategories.length > 0) {
         const prodCategory = productCategoryMap.get(item.id);
         if (!prodCategory || !coupon.applicableCategories.includes(prodCategory)) {
           qualifies = false;
@@ -81,6 +87,7 @@ export async function POST(request: Request) {
 
       if (qualifies) {
         qualifyingSubtotal += item.price * item.quantity;
+        qualifyingQuantity += item.quantity;
         hasQualifyingItem = true;
       }
     }
@@ -89,16 +96,27 @@ export async function POST(request: Request) {
       return Response.json({ valid: false, error: 'Coupon is not applicable to the items in your cart' });
     }
 
-    // Calculate discount amount based on qualifyingSubtotal
+    // Calculate discount amount
     let discountAmount = 0;
-    if (coupon.discountType === 'percentage') {
-      discountAmount = Math.round((qualifyingSubtotal * coupon.discountValue) / 100);
-      if (coupon.maxDiscount !== null && coupon.maxDiscount > 0) {
-        discountAmount = Math.min(discountAmount, coupon.maxDiscount);
+    const qd = coupon.quantityDiscount;
+    
+    // Check if quantity discount is enabled and criteria met
+    if (qd && qd.enabled && qualifyingQuantity >= qd.minQuantity && subtotal >= qd.minOrderValue) {
+      if (qd.discountType === 'percentage') {
+        discountAmount = Math.round((qualifyingSubtotal * qd.discountValue) / 100);
+      } else {
+        discountAmount = Math.min(qd.discountValue * qualifyingQuantity, qualifyingSubtotal);
       }
     } else {
-      // Flat discount is capped at the qualifying subtotal of items in the cart
-      discountAmount = Math.min(coupon.discountValue, qualifyingSubtotal);
+      // Normal discount
+      if (coupon.discountType === 'percentage') {
+        discountAmount = Math.round((qualifyingSubtotal * coupon.discountValue) / 100);
+        if (coupon.maxDiscount !== null && coupon.maxDiscount > 0) {
+          discountAmount = Math.min(discountAmount, coupon.maxDiscount);
+        }
+      } else {
+        discountAmount = Math.min(coupon.discountValue, qualifyingSubtotal);
+      }
     }
 
     return Response.json({

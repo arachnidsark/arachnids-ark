@@ -10,17 +10,19 @@ import { useModules } from '@/hooks/use-modules';
 
 export default function NotFound() {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, viewMode } = useAuthStore();
   const { isVisible } = useModules();
+
+  const isAdminView = user?.role === 'admin' && viewMode === 'admin';
 
   const getDashboardHref = () => {
     if (!isAuthenticated) return '/login';
-    return user?.role === 'admin' ? '/admin' : '/dashboard';
+    return isAdminView ? '/admin' : '/dashboard';
   };
 
   const getDashboardLabel = () => {
     if (!isAuthenticated) return 'Sign In';
-    return user?.role === 'admin' ? 'Admin Dashboard' : 'My Dashboard';
+    return isAdminView ? 'Admin Dashboard' : 'My Dashboard';
   };
 
   return (
@@ -48,7 +50,7 @@ export default function NotFound() {
           Don't worry, even the best spiders lose their way sometimes.
         </p>
 
-        <div className={cn("grid gap-4", (user?.role === 'admin' || !isVisible('products')) ? "grid-cols-1" : "sm:grid-cols-2")}>
+        <div className={cn("grid gap-4", (isAdminView || !isVisible('products')) ? "grid-cols-1" : "sm:grid-cols-2")}>
           <Link
             href={getDashboardHref()}
             className="flex items-center justify-center gap-2 px-6 h-14 rounded-2xl bg-brand-red text-white font-bold uppercase tracking-widest text-[10px] hover:bg-brand-red/90 transition-all shadow-xl shadow-brand-red/20"
@@ -57,7 +59,7 @@ export default function NotFound() {
             {getDashboardLabel()}
           </Link>
           
-          {user?.role !== 'admin' && isVisible('products') && (
+          {!isAdminView && isVisible('products') && (
             <Link
               href="/shop"
               className="flex items-center justify-center gap-2 px-6 h-14 rounded-2xl border border-border bg-card text-foreground font-bold uppercase tracking-widest text-[10px] hover:bg-muted transition-all"

@@ -717,16 +717,24 @@ function FAQSection() {
 
 // ========== MAIN HOME PAGE ==========
 export default function HomePage() {
-  const { user } = useAuthStore();
+  const { user, viewMode } = useAuthStore();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (user?.role === 'admin') {
-      router.replace('/admin');
-    }
-  }, [user, router]);
+    setMounted(true);
+  }, []);
 
-  if (user?.role === 'admin') return null;
+  useEffect(() => {
+    if (mounted && user?.role === 'admin' && viewMode === 'admin') {
+      const timeoutId = setTimeout(() => {
+        router.replace('/admin');
+      }, 0);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [mounted, user, viewMode, router]);
+
+  if (!mounted || (user?.role === 'admin' && viewMode === 'admin')) return null;
 
   return (
     <>

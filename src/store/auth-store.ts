@@ -10,6 +10,8 @@ interface AuthState {
   user: SafeUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  viewMode: 'admin' | 'user';
+  setViewMode: (mode: 'admin' | 'user') => void;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signup: (name: string, email: string, password: string, phone?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
@@ -25,6 +27,11 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       isLoading: false,
+      viewMode: 'admin',
+
+      setViewMode: (mode: 'admin' | 'user') => {
+        set({ viewMode: mode });
+      },
 
       login: async (email: string, password: string) => {
         set({ isLoading: true });
@@ -36,7 +43,8 @@ export const useAuthStore = create<AuthState>()(
           return { success: false, error: result.error || 'Invalid email or password' };
         }
 
-        set({ user: result.user, isAuthenticated: true, isLoading: false });
+        const viewMode = result.user.role === 'admin' ? 'admin' : 'user';
+        set({ user: result.user, isAuthenticated: true, isLoading: false, viewMode });
         // Load favorites
         useFavoriteStore.getState().loadFavorites(result.user.id);
         return { success: true };
@@ -61,7 +69,7 @@ export const useAuthStore = create<AuthState>()(
           // Remove password from the response for safe user
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { password: _password, ...safeUser } = created as User & { password?: string };
-          set({ user: safeUser as SafeUser, isAuthenticated: true, isLoading: false });
+          set({ user: safeUser as SafeUser, isAuthenticated: true, isLoading: false, viewMode: 'user' });
           // Load favorites
           useFavoriteStore.getState().loadFavorites(safeUser.id);
           return { success: true };
@@ -72,7 +80,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        set({ user: null, isAuthenticated: false });
+        set({ user: null, isAuthenticated: false, viewMode: 'admin' });
         useFavoriteStore.getState().clearFavorites();
       },
 
@@ -113,6 +121,7 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
+        viewMode: state.viewMode,
       }),
     }
   )

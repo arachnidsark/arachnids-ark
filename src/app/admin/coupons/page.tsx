@@ -44,6 +44,16 @@ export default function AdminCouponsPage() {
     isActive: true,
     applicableTo: 'all',
     applicableCategories: [],
+    excludedProductIds: [],
+    excludedCourseIds: [],
+    excludedConsultationIds: [],
+    quantityDiscount: {
+      enabled: false,
+      minQuantity: 0,
+      discountType: 'percentage',
+      discountValue: 0,
+      minOrderValue: 0,
+    },
     autoApply: false,
   });
 
@@ -53,9 +63,21 @@ export default function AdminCouponsPage() {
     Centipedes: false,
   });
 
+  // Data for exclusions
+  const [products, setProducts] = useState<any[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
+  const [consultations, setConsultations] = useState<any[]>([]);
+
   useEffect(() => {
     (async () => {
       setCoupons(await Db.getAll<Coupon>('coupons'));
+      setProducts(await Db.getAll('products'));
+      setCourses(await Db.getAll('courses'));
+      
+      const settings = await Db.getSettings<any>('system_settings');
+      if (settings?.consultationSettings?.pricing) {
+        setConsultations(settings.consultationSettings.pricing);
+      }
       setIsFetching(false);
     })();
   }, []);
@@ -102,6 +124,16 @@ export default function AdminCouponsPage() {
         isActive: true,
         applicableTo: 'all',
         applicableCategories: [],
+        excludedProductIds: [],
+        excludedCourseIds: [],
+        excludedConsultationIds: [],
+        quantityDiscount: {
+          enabled: false,
+          minQuantity: 0,
+          discountType: 'percentage',
+          discountValue: 0,
+          minOrderValue: 0,
+        },
         autoApply: false,
       });
     }
@@ -159,6 +191,16 @@ export default function AdminCouponsPage() {
       maxUses: Number(formData.maxUses),
       maxUsesPerUser: Number(formData.maxUsesPerUser),
       applicableCategories: formData.applicableTo === 'products' ? (formData.applicableCategories || []) : [],
+      excludedProductIds: formData.excludedProductIds || [],
+      excludedCourseIds: formData.excludedCourseIds || [],
+      excludedConsultationIds: formData.excludedConsultationIds || [],
+      quantityDiscount: formData.quantityDiscount ? {
+        enabled: Boolean(formData.quantityDiscount.enabled),
+        minQuantity: Number(formData.quantityDiscount.minQuantity || 0),
+        discountType: formData.quantityDiscount.discountType || 'percentage',
+        discountValue: Number(formData.quantityDiscount.discountValue || 0),
+        minOrderValue: Number(formData.quantityDiscount.minOrderValue || 0),
+      } : null,
     };
 
     if (editingCoupon) {
@@ -344,7 +386,7 @@ export default function AdminCouponsPage() {
                   id="code"
                   value={formData.code || ''}
                   onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                  className="bg-background/50 font-mono font-bold tracking-wider"
+                  className="bg-background/50 font-mono font-bold tracking-wider h-10"
                   placeholder="e.g. WELCOME20"
                   disabled={!!editingCoupon}
                 />
@@ -356,7 +398,7 @@ export default function AdminCouponsPage() {
                   id="description"
                   value={formData.description || ''}
                   onChange={e => setFormData({ ...formData, description: e.target.value })}
-                  className="bg-background/50"
+                  className="bg-background/50 h-10"
                   placeholder="e.g. 20% off for first order"
                 />
               </div>
@@ -387,10 +429,10 @@ export default function AdminCouponsPage() {
                     type="number"
                     value={formData.discountValue || ''}
                     onChange={e => setFormData({ ...formData, discountValue: e.target.value === '' ? 0 : Number(e.target.value) })}
-                    className="bg-background/50 pr-8"
+                    className="bg-background/50 pr-8 h-10"
                     placeholder="e.g. 10"
                   />
-                  <div className="absolute right-3 top-3 text-muted-foreground text-xs font-bold pointer-events-none">
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-bold pointer-events-none">
                     {formData.discountType === 'percentage' ? '%' : '₹'}
                   </div>
                 </div>
@@ -404,10 +446,10 @@ export default function AdminCouponsPage() {
                     type="number"
                     value={formData.minOrderValue || ''}
                     onChange={e => setFormData({ ...formData, minOrderValue: e.target.value === '' ? 0 : Number(e.target.value) })}
-                    className="bg-background/50 pr-8"
+                    className="bg-background/50 pr-8 h-10"
                     placeholder="0 = No Minimum"
                   />
-                  <div className="absolute right-3 top-3 text-muted-foreground text-xs font-bold pointer-events-none">₹</div>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-bold pointer-events-none">₹</div>
                 </div>
               </div>
             </div>
@@ -421,10 +463,10 @@ export default function AdminCouponsPage() {
                     type="number"
                     value={formData.maxDiscount || ''}
                     onChange={e => setFormData({ ...formData, maxDiscount: e.target.value === '' ? null : Number(e.target.value) })}
-                    className="bg-background/50"
+                    className="bg-background/50 h-10"
                     placeholder="Leave empty for unlimited cap"
                   />
-                  <div className="absolute right-3 top-3 text-muted-foreground text-xs font-bold pointer-events-none">₹</div>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-bold pointer-events-none">₹</div>
                 </div>
                 <p className="text-[10px] text-muted-foreground italic flex items-center gap-1">
                   <Info className="h-3 w-3" /> Caps the total discount amount (e.g. 20% off up to ₹500).
@@ -440,7 +482,7 @@ export default function AdminCouponsPage() {
                   type="number"
                   value={formData.maxUses || ''}
                   onChange={e => setFormData({ ...formData, maxUses: e.target.value === '' ? 0 : Number(e.target.value) })}
-                  className="bg-background/50"
+                  className="bg-background/50 h-10"
                   placeholder="0 = Unlimited Uses"
                 />
               </div>
@@ -452,7 +494,7 @@ export default function AdminCouponsPage() {
                   type="number"
                   value={formData.maxUsesPerUser || ''}
                   onChange={e => setFormData({ ...formData, maxUsesPerUser: e.target.value === '' ? 0 : Number(e.target.value) })}
-                  className="bg-background/50"
+                  className="bg-background/50 h-10"
                   placeholder="0 = Unlimited"
                 />
               </div>
@@ -518,6 +560,194 @@ export default function AdminCouponsPage() {
                     ))}
                   </div>
                   <p className="text-[10px] text-muted-foreground italic">If none selected, it applies to all product categories.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4 pt-4 border-t border-border/40">
+              <Label className="text-brand-gold uppercase tracking-widest text-[10px] font-bold flex items-center gap-2">
+                 Excluded Items (Never Discounted)
+              </Label>
+              
+              <div className="grid grid-cols-1 gap-6">
+                {(formData.applicableTo === 'all' || formData.applicableTo === 'products') && (
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold">Exclude Products</Label>
+                    <Select
+                      onValueChange={(val) => {
+                        const strVal = val as string;
+                        if (strVal && !formData.excludedProductIds?.includes(strVal)) {
+                          setFormData({ ...formData, excludedProductIds: [...(formData.excludedProductIds || []), strVal] });
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="bg-background/50 border-border h-10">
+                        <SelectValue placeholder="Select products to exclude..." />
+                      </SelectTrigger>
+                      <SelectContent className="glass border-border max-h-[200px]">
+                        {products.map(p => (
+                          <SelectItem key={p.id} value={p.id} className="text-xs">{p.name} - {formatPrice(p.sizes?.[0]?.price || 0)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {formData.excludedProductIds?.map(id => {
+                        const product = products.find(p => p.id === id);
+                        return product ? (
+                          <Badge key={id} variant="outline" className="flex items-center gap-1 bg-red-500/10 text-red-500 border-red-500/20 text-[10px]">
+                            {product.name}
+                            <button type="button" onClick={() => setFormData({ ...formData, excludedProductIds: formData.excludedProductIds?.filter(i => i !== id) })} className="hover:text-red-400 ml-1">×</button>
+                          </Badge>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
+                )}
+                
+                {(formData.applicableTo === 'all' || formData.applicableTo === 'courses') && (
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold">Exclude Courses</Label>
+                    <Select
+                      onValueChange={(val) => {
+                        const strVal = val as string;
+                        if (strVal && !formData.excludedCourseIds?.includes(strVal)) {
+                          setFormData({ ...formData, excludedCourseIds: [...(formData.excludedCourseIds || []), strVal] });
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="bg-background/50 border-border h-10">
+                        <SelectValue placeholder="Select courses to exclude..." />
+                      </SelectTrigger>
+                      <SelectContent className="glass border-border max-h-[200px]">
+                        {courses.map(c => (
+                          <SelectItem key={c.id} value={c.id} className="text-xs">{c.title} - {formatPrice(c.price)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {formData.excludedCourseIds?.map(id => {
+                        const course = courses.find(c => c.id === id);
+                        return course ? (
+                          <Badge key={id} variant="outline" className="flex items-center gap-1 bg-red-500/10 text-red-500 border-red-500/20 text-[10px]">
+                            {course.title}
+                            <button type="button" onClick={() => setFormData({ ...formData, excludedCourseIds: formData.excludedCourseIds?.filter(i => i !== id) })} className="hover:text-red-400 ml-1">×</button>
+                          </Badge>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
+                )}
+                
+                {(formData.applicableTo === 'all' || formData.applicableTo === 'consultations') && (
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold">Exclude Consultations</Label>
+                    <Select
+                      onValueChange={(val) => {
+                        const strVal = val as string;
+                        // For consultations we use label + duration as ID in UI for simplicity
+                        if (strVal && !formData.excludedConsultationIds?.includes(strVal)) {
+                          setFormData({ ...formData, excludedConsultationIds: [...(formData.excludedConsultationIds || []), strVal] });
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="bg-background/50 border-border h-10">
+                        <SelectValue placeholder="Select consultations to exclude..." />
+                      </SelectTrigger>
+                      <SelectContent className="glass border-border max-h-[200px]">
+                        {consultations.map(c => (
+                          <SelectItem key={c.label} value={c.label} className="text-xs">{c.label} ({c.duration}m) - {formatPrice(c.basePrice)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {formData.excludedConsultationIds?.map(id => {
+                        return (
+                          <Badge key={id} variant="outline" className="flex items-center gap-1 bg-red-500/10 text-red-500 border-red-500/20 text-[10px]">
+                            {id}
+                            <button type="button" onClick={() => setFormData({ ...formData, excludedConsultationIds: formData.excludedConsultationIds?.filter(i => i !== id) })} className="hover:text-red-400 ml-1">×</button>
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="space-y-4 pt-4 border-t border-border/40">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-brand-gold uppercase tracking-widest text-[10px] font-bold">Quantity-Based Discount (Bulk Offers)</Label>
+                  <p className="text-[10px] text-muted-foreground italic mt-1">
+                    Overrides normal discount when minimum item quantity is met. Applies discount PER ITEM.
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.quantityDiscount?.enabled || false}
+                  onCheckedChange={(checked) => setFormData({ 
+                    ...formData, 
+                    quantityDiscount: { 
+                      ...(formData.quantityDiscount || { minQuantity: 0, discountType: 'percentage', discountValue: 0, minOrderValue: 0 }),
+                      enabled: checked 
+                    } 
+                  })}
+                />
+              </div>
+              
+              {formData.quantityDiscount?.enabled && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-xl border border-brand-gold/20 bg-brand-gold/5 mt-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold">Min Quantity *</Label>
+                    <Input
+                      type="number"
+                      value={formData.quantityDiscount.minQuantity || ''}
+                      onChange={e => setFormData({ ...formData, quantityDiscount: { ...formData.quantityDiscount!, minQuantity: e.target.value === '' ? 0 : Number(e.target.value) } })}
+                      className="bg-background/80 h-9 text-xs"
+                      placeholder="e.g. 10"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold">Discount Type</Label>
+                    <Select
+                      value={formData.quantityDiscount.discountType}
+                      onValueChange={(val) => setFormData({ ...formData, quantityDiscount: { ...formData.quantityDiscount!, discountType: val as DiscountType } })}
+                    >
+                      <SelectTrigger className="bg-background/80 h-9 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="glass border-border">
+                        <SelectItem value="percentage" className="text-xs">Percentage (%)</SelectItem>
+                        <SelectItem value="flat" className="text-xs">Flat Amount (₹)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold">Discount Value *</Label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        value={formData.quantityDiscount.discountValue || ''}
+                        onChange={e => setFormData({ ...formData, quantityDiscount: { ...formData.quantityDiscount!, discountValue: e.target.value === '' ? 0 : Number(e.target.value) } })}
+                        className="bg-background/80 h-9 text-xs pr-7"
+                      />
+                      <span className="absolute right-3 top-2.5 text-[10px] text-muted-foreground font-bold pointer-events-none">
+                        {formData.quantityDiscount.discountType === 'percentage' ? '%' : '₹'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold">Min Order Value</Label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        value={formData.quantityDiscount.minOrderValue || ''}
+                        onChange={e => setFormData({ ...formData, quantityDiscount: { ...formData.quantityDiscount!, minOrderValue: e.target.value === '' ? 0 : Number(e.target.value) } })}
+                        className="bg-background/80 h-9 text-xs pr-7"
+                        placeholder="0 = No Min"
+                      />
+                      <span className="absolute right-3 top-2.5 text-[10px] text-muted-foreground font-bold pointer-events-none">₹</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

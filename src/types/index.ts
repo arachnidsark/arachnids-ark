@@ -393,6 +393,16 @@ export interface Coupon {
   isActive: boolean;
   applicableTo: CouponApplicableTo;
   applicableCategories: string[];   // empty = all categories
+  excludedProductIds: string[];
+  excludedCourseIds: string[];
+  excludedConsultationIds: string[];
+  quantityDiscount: {
+    enabled: boolean;
+    minQuantity: number;
+    discountType: DiscountType;
+    discountValue: number;
+    minOrderValue: number;
+  } | null;
   autoApply: boolean;
   createdAt: string;
   updatedAt: string;

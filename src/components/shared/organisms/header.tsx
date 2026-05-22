@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { cn } from '@/lib/utils';
-import { Menu, Search, Bell, User, LogOut } from 'lucide-react';
+import { Menu, Search, Bell, User, LogOut, Eye } from 'lucide-react';
 import { Button } from '@/components/shared/atoms/button';
 import { Input } from '@/components/shared/atoms/input';
 import { 
@@ -15,40 +15,26 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { useAuthStore } from '@/store/auth-store';
+import { usePathname, useRouter } from 'next/navigation';
+import { PAGE_TITLES } from '@/constants/navigation';
 
-/**
- * Universal Header Organism.
- * Replaces AdminHeader and standardizes top navigation across the platform.
- */
 export interface HeaderProps {
-  /** If true, the mobile sidebar trigger is visible */
   showMobileMenu?: boolean;
-  /** Callback for mobile menu trigger */
   onMenuClick?: () => void;
-  /** Optional title or breadcrumb area */
   title?: React.ReactNode;
-  /** Optional search handler */
   onSearch?: (query: string) => void;
-  /** User information for the profile dropdown */
   user?: {
     name: string;
     email: string;
     image?: string;
   };
-  /** Callback for logout */
   onLogout?: () => void;
-  /** Callback for notification trigger */
   onNotificationClick?: () => void;
-  /** Number of unread notifications */
   unreadCount?: number;
-  /** Optional children for center area (e.g., links) */
   children?: React.ReactNode;
-  /** CSS class for custom styling */
   className?: string;
 }
-
-import { usePathname, useRouter } from 'next/navigation';
-import { PAGE_TITLES } from '@/constants/navigation';
 
 export function Header({
   showMobileMenu,
@@ -64,6 +50,7 @@ export function Header({
 }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { user: authUser, viewMode, setViewMode } = useAuthStore();
   
   const handleProfileClick = () => {
     // Check if we are in admin area or if user is admin
@@ -120,6 +107,20 @@ export function Header({
 
       {/* Right Area: Actions & Profile */}
       <div className="flex items-center gap-1.5 md:gap-4">
+        {authUser?.role === 'admin' && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setViewMode('user');
+              router.push('/');
+            }}
+            className="flex items-center gap-1.5 border-brand-gold/30 text-brand-gold hover:bg-brand-gold/10 h-9 font-bold uppercase tracking-wider text-[10px]"
+          >
+            <Eye className="h-4 w-4" />
+            <span className="hidden xs:inline">View Store</span>
+          </Button>
+        )}
         <div className="hidden sm:block">
           <ThemeToggle />
         </div>
@@ -162,6 +163,15 @@ export function Header({
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              {authUser?.role === 'admin' && (
+                <DropdownMenuItem onClick={() => {
+                  setViewMode('user');
+                  router.push('/');
+                }} className="cursor-pointer font-bold text-brand-gold focus:text-brand-gold">
+                  <Eye className="mr-2 h-4 w-4" />
+                  <span>View Storefront</span>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={handleProfileClick} className="cursor-pointer">
                 <User className="mr-2 h-4 w-4" />
                 <span>My Profile</span>

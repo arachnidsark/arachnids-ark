@@ -39,7 +39,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (mounted && !isLoading) {
       if (!isAuthenticated) {
-        router.replace('/login');
+        const timeoutId = setTimeout(() => {
+          router.replace('/login');
+        }, 0);
+        return () => clearTimeout(timeoutId);
       } else {
         setHasAccess(user?.role === 'admin');
       }

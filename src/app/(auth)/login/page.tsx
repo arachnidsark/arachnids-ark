@@ -24,16 +24,24 @@ export default function LoginPage() {
   const redirect = searchParams.get('redirect');
   const { login, isLoading, isAuthenticated, user } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      if (user?.role === 'admin') {
-        router.replace('/admin');
-      } else {
-        router.replace('/dashboard');
-      }
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && isAuthenticated) {
+      const timeoutId = setTimeout(() => {
+        if (user?.role === 'admin') {
+          router.replace('/admin');
+        } else {
+          router.replace('/dashboard');
+        }
+      }, 0);
+      return () => clearTimeout(timeoutId);
     }
-  }, [isAuthenticated, user, router]);
+  }, [mounted, isAuthenticated, user, router]);
 
   const fields: FormFieldConfig[] = [
     {

@@ -23,6 +23,19 @@ const couponSchema = new Schema(
     isActive: { type: Boolean, default: true },
     applicableTo: { type: String, enum: ['all', 'products', 'courses', 'consultations'], default: 'all' },
     applicableCategories: [{ type: String }],               // empty = all
+    excludedProductIds: [{ type: String, default: [] }],
+    excludedCourseIds: [{ type: String, default: [] }],
+    excludedConsultationIds: [{ type: String, default: [] }],
+    quantityDiscount: {
+      type: {
+        enabled: { type: Boolean, default: false },
+        minQuantity: { type: Number, default: 0 },
+        discountType: { type: String, enum: ['percentage', 'flat'], default: 'percentage' },
+        discountValue: { type: Number, default: 0 },
+        minOrderValue: { type: Number, default: 0 },
+      },
+      default: null,
+    },
     autoApply: { type: Boolean, default: false },
   },
   {

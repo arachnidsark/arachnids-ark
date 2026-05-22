@@ -5,12 +5,12 @@ import { useAuthStore } from '@/store/auth-store';
 import { useGlobalModules } from '@/providers/module-provider';
 
 export function useModules() {
-  const { user } = useAuthStore();
+  const { user, viewMode } = useAuthStore();
   const modules = useGlobalModules();
 
   const isVisible = useCallback((moduleName?: string) => {
-    // Admins see everything
-    if (user?.role === 'admin') return true;
+    // Admins see everything only in admin view mode
+    if (user?.role === 'admin' && viewMode === 'admin') return true;
     
     if (!moduleName) return true;
     switch (moduleName) {
@@ -19,7 +19,7 @@ export function useModules() {
       case 'consultations': return modules.showConsultations;
       default: return true;
     }
-  }, [user?.role, modules]);
+  }, [user?.role, viewMode, modules]);
 
   return { modules, isVisible };
 }

@@ -85,21 +85,29 @@ export default function CheckoutPage() {
       }
     }
 
-    // 4. Product Type Scope check
+    // 3.5 Check exclusions
     let eligibleItems = [...items];
+    eligibleItems = eligibleItems.filter(i => {
+      if (i.type === 'product' && coupon.excludedProductIds?.includes(i.id)) return false;
+      if (i.type === 'course' && coupon.excludedCourseIds?.includes(i.id)) return false;
+      if (i.type === 'consultation' && coupon.excludedConsultationIds?.includes(i.id)) return false;
+      return true;
+    });
+
+    // 4. Product Type Scope check
     if (coupon.applicableTo && coupon.applicableTo !== 'all') {
       if (coupon.applicableTo === 'products') {
-        eligibleItems = items.filter(i => i.type === 'product');
+        eligibleItems = eligibleItems.filter(i => i.type === 'product');
         if (eligibleItems.length === 0) {
           return { eligible: false, reason: 'Applicable only on physical products' };
         }
       } else if (coupon.applicableTo === 'courses') {
-        eligibleItems = items.filter(i => i.type === 'course');
+        eligibleItems = eligibleItems.filter(i => i.type === 'course');
         if (eligibleItems.length === 0) {
           return { eligible: false, reason: 'Applicable only on online courses' };
         }
       } else if (coupon.applicableTo === 'consultations') {
-        eligibleItems = items.filter(i => i.type === 'consultation');
+        eligibleItems = eligibleItems.filter(i => i.type === 'consultation');
         if (eligibleItems.length === 0) {
           return { eligible: false, reason: 'Applicable only on expert consultations' };
         }
@@ -108,7 +116,7 @@ export default function CheckoutPage() {
 
     // 5. Category Scope check
     if (coupon.applicableCategories && coupon.applicableCategories.length > 0) {
-      const hasProductsInCategories = items.some(i => {
+      const hasProductsInCategories = eligibleItems.some(i => {
         if (i.type !== 'product') return false;
         const details = productDetails[i.id];
         return !details || coupon.applicableCategories.includes(details.mainCategory);
@@ -124,9 +132,15 @@ export default function CheckoutPage() {
         return !details || coupon.applicableCategories.includes(details.mainCategory);
       });
     }
+    
+    if (eligibleItems.length === 0) {
+       return { eligible: false, reason: 'None of the items in your cart are eligible for this coupon' };
+    }
 
     // 6. Minimum purchase check (comparing qualifying items eligibleSubtotal against minOrderValue)
     const eligibleSubtotal = eligibleItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const eligibleQuantity = eligibleItems.reduce((sum, item) => sum + item.quantity, 0);
+    
     if (coupon.minOrderValue && eligibleSubtotal < coupon.minOrderValue) {
       return { 
         eligible: false, 
@@ -136,13 +150,22 @@ export default function CheckoutPage() {
 
     // Calculate simulated discount
     let simulatedDiscount = 0;
-    if (coupon.discountType === 'percentage') {
-      simulatedDiscount = Math.round((eligibleSubtotal * coupon.discountValue) / 100);
-      if (coupon.maxDiscount && simulatedDiscount > coupon.maxDiscount) {
-        simulatedDiscount = coupon.maxDiscount;
-      }
+    const qd = coupon.quantityDiscount;
+    if (qd && qd.enabled && eligibleQuantity >= qd.minQuantity && subtotal >= qd.minOrderValue) {
+       if (qd.discountType === 'percentage') {
+           simulatedDiscount = Math.round((eligibleSubtotal * qd.discountValue) / 100);
+       } else {
+           simulatedDiscount = qd.discountValue * eligibleQuantity;
+       }
     } else {
-      simulatedDiscount = coupon.discountValue;
+      if (coupon.discountType === 'percentage') {
+        simulatedDiscount = Math.round((eligibleSubtotal * coupon.discountValue) / 100);
+        if (coupon.maxDiscount && simulatedDiscount > coupon.maxDiscount) {
+          simulatedDiscount = coupon.maxDiscount;
+        }
+      } else {
+        simulatedDiscount = coupon.discountValue;
+      }
     }
 
     return { eligible: true, discountAmount: Math.min(simulatedDiscount, eligibleSubtotal) };
@@ -304,6 +327,11 @@ export default function CheckoutPage() {
     if (!isAuthenticated || !user) {
       toast.error('Please login to place an order');
       router.push(`/login?redirect=/checkout`);
+      return;
+    }
+
+    if (user?.role === 'admin') {
+      toast.error('Admins cannot place orders');
       return;
     }
 
@@ -819,10 +847,19 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
+                {user?.role === 'admin' && (
+                  <div className="p-4 rounded-xl border border-brand-red/20 bg-brand-red/5 text-brand-red text-center space-y-2 mt-4">
+                    <p className="text-xs font-bold uppercase tracking-wider">Checkout Restricted</p>
+                    <p className="text-[10px] text-muted-foreground leading-normal">
+                      Administrators are restricted from placing orders to prevent polluting the live database.
+                    </p>
+                  </div>
+                )}
+
                 <Button
                   onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="w-full bg-brand-red hover:bg-brand-red/90 text-white font-bold h-12 shadow-lg shadow-brand-red/20 mt-4"
+                  disabled={isSubmitting || user?.role === 'admin'}
+                  className="w-full bg-brand-red hover:bg-brand-red/90 text-white font-bold h-12 shadow-lg shadow-brand-red/20 mt-4 cursor-pointer"
                 >
                   {isSubmitting ? 'Processing...' : 'Place Order Request'}
                 </Button>

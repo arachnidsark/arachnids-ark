@@ -40,16 +40,24 @@ export default function SignupPage() {
   const [otpValue, setOtpValue] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      if (user?.role === 'admin') {
-        router.replace('/admin');
-      } else {
-        router.push('/dashboard');
-      }
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && isAuthenticated) {
+      const timeoutId = setTimeout(() => {
+        if (user?.role === 'admin') {
+          router.replace('/admin');
+        } else {
+          router.push('/dashboard');
+        }
+      }, 0);
+      return () => clearTimeout(timeoutId);
     }
-  }, [isAuthenticated, user, router]);
+  }, [mounted, isAuthenticated, user, router]);
 
   useEffect(() => {
     if (countdown > 0) {
