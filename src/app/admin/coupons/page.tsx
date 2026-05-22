@@ -16,11 +16,13 @@ import type { Coupon, DiscountType, CouponApplicableTo } from '@/types';
 import { SectionHeader } from '@/components/shared/molecules/section-header';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatPrice } from '@/constants/pricing';
+import { Loading } from '@/components/shared/molecules/loading';
 
 export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -54,6 +56,7 @@ export default function AdminCouponsPage() {
   useEffect(() => {
     (async () => {
       setCoupons(await Db.getAll<Coupon>('coupons'));
+      setIsFetching(false);
     })();
   }, []);
 
@@ -207,6 +210,10 @@ export default function AdminCouponsPage() {
     }
     return <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/20 text-emerald-500 uppercase text-[9px] font-bold">Active</Badge>;
   };
+
+  if (isFetching) {
+    return <Loading text="Loading coupons..." />;
+  }
 
   return (
     <div className="space-y-6">
