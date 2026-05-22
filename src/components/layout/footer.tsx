@@ -16,7 +16,7 @@ export function Footer() {
 
   return (
     <footer className="border-t border-border bg-background">
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 pt-12 pb-24 md:py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="space-y-4">
@@ -47,7 +47,6 @@ export function Footer() {
             <ul className="space-y-2.5">
               {[
                 { label: 'Shop Exotics', href: '/shop', module: 'products' },
-                { label: 'About Us', href: '/#about' },
                 { label: 'Care Guides', href: '/care-guides' },
                 { label: 'Courses', href: '/courses', module: 'courses' },
                 { label: 'Consultation', href: '/consultation', module: 'consultations' },
@@ -70,7 +69,6 @@ export function Footer() {
                 { label: 'My Favorites', href: '/liked' },
                 { label: 'Track Orders', href: '/dashboard/orders' },
                 { label: 'FAQs', href: '/#faq' },
-                { label: 'Shipping Info', href: '#' },
               ].map(link => (
                 <li key={link.label}>
                   <Link href={link.href} className="text-sm text-muted-foreground hover:text-brand-gold transition-colors">
@@ -105,11 +103,6 @@ export function Footer() {
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} ArachnidsArk. All rights reserved.
           </p>
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <a href="#" className="hover:text-brand-gold transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-brand-gold transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-brand-gold transition-colors">Refund Policy</a>
-          </div>
         </div>
       </div>
     </footer>

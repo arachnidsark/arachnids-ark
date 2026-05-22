@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth-store';
 import { useFavoriteStore } from '@/store/favorite-store';
+import { useReviewStore } from '@/store/review-store';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useModules } from '@/hooks/use-modules';
 
@@ -206,10 +207,12 @@ function FeaturedTarantulas() {
     expert: 'bg-red-500 text-white hover:bg-red-400',
   };
 
+  if (!isVisible('products')) return null;
+  if (!isLoading && products.length === 0) return null;
+
   return (
     <section className="py-12 md:py-20 relative">
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-brand-red/[0.02] to-transparent" />
-      {!isVisible('products') ? null : (
       <div className="container mx-auto px-4 relative">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -371,7 +374,6 @@ function FeaturedTarantulas() {
           </Link>
         </div>
       </div>
-      )}
     </section>
   );
 }
@@ -391,9 +393,11 @@ function FeaturedCourses() {
   })();
   }, []);
 
+  if (!isVisible('courses')) return null;
+  if (!isLoading && courses.length === 0) return null;
+
   return (
     <section className="py-12 md:py-20 bg-card/30">
-      {!isVisible('courses') ? null : (
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -472,7 +476,6 @@ function FeaturedCourses() {
           </Link>
         </div>
       </div>
-      )}
     </section>
   );
 }
@@ -489,6 +492,8 @@ function CareGuidesPreview() {
     setIsLoading(false);
   })();
   }, []);
+
+  if (!isLoading && guides.length === 0) return null;
 
   return (
     <section className="py-12 md:py-20">
@@ -600,11 +605,29 @@ function ConsultationCTA() {
 
 // ========== TESTIMONIALS ==========
 function Testimonials() {
-  const testimonials = [
-    { name: 'Rahul Sharma', role: 'Hobbyist', content: 'ArachnidsArk helped me start my tarantula collection with confidence. The care guides are incredibly detailed and the support team is amazing.', rating: 5, avatar: 'https://i.pravatar.cc/150?u=rahul' },
-    { name: 'Priya Menon', role: 'Breeder', content: 'The advanced courses are a game-changer. I learned breeding techniques I couldn\'t find anywhere else. Highly recommend the Old World Mastery course.', rating: 5, avatar: 'https://i.pravatar.cc/150?u=priya' },
-    { name: 'Arjun Patel', role: 'Collector', content: 'Premium quality species with excellent health records. The consultation service helped me set up my enclosure perfectly. Best experience ever.', rating: 5, avatar: 'https://i.pravatar.cc/150?u=arjun' },
-  ];
+  const { reviews, loadReviews, isLoading } = useReviewStore();
+
+  useEffect(() => {
+    loadReviews();
+  }, [loadReviews]);
+
+  const approvedReviews = reviews.filter(r => r.status === 'approved').slice(0, 3);
+
+  if (isLoading) {
+    return (
+      <section className="py-12 md:py-20 bg-card/30">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-48 rounded-2xl bg-card/20 animate-pulse border border-border" />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (approvedReviews.length === 0) return null;
 
   return (
     <section className="py-12 md:py-20 bg-card/30">
@@ -617,7 +640,7 @@ function Testimonials() {
         >
           <Badge variant="outline" className="border-brand-gold/30 text-brand-gold mb-4">
             <Star className="h-3 w-3 mr-2" />
-            Testimonials
+            Community Reviews
           </Badge>
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
             What Our <span className="text-gradient">Community</span> Says
@@ -625,38 +648,47 @@ function Testimonials() {
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {testimonials.map((t, i) => (
-            <motion.div
-              key={t.name}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.15 }}
-            >
-              <Card className="border-border bg-card h-full">
-                <CardContent className="p-6 space-y-4">
-                  <div className="flex gap-1">
-                    {Array.from({ length: t.rating }).map((_, j) => (
-                      <Star key={j} className="h-4 w-4 fill-brand-gold text-brand-gold" />
-                    ))}
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">&ldquo;{t.content}&rdquo;</p>
-                  <div className="pt-4 border-t border-border flex items-center gap-3">
-                    <Avatar className="h-10 w-10 border border-border">
-                      <AvatarImage src={t.avatar} />
-                      <AvatarFallback className="bg-brand-red text-white text-xs">
-                        {t.name.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-semibold text-sm">{t.name}</p>
-                      <p className="text-xs text-brand-gold">{t.role}</p>
+          {approvedReviews.map((review, i) => {
+            const role =
+              review.targetType === 'product'
+                ? 'Verified Buyer'
+                : review.targetType === 'course'
+                ? 'Course Student'
+                : 'Consultation Client';
+
+            return (
+              <motion.div
+                key={review.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.15 }}
+              >
+                <Card className="border-border bg-card h-full">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex gap-1">
+                      {Array.from({ length: review.rating }).map((_, j) => (
+                        <Star key={j} className="h-4 w-4 fill-brand-gold text-brand-gold" />
+                      ))}
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+                    <p className="text-sm text-muted-foreground leading-relaxed">&ldquo;{review.comment}&rdquo;</p>
+                    <div className="pt-4 border-t border-border flex items-center gap-3">
+                      <Avatar className="h-10 w-10 border border-border">
+                        {review.userAvatar && <AvatarImage src={review.userAvatar} />}
+                        <AvatarFallback className="bg-brand-red text-white text-xs">
+                          {review.userName.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-semibold text-sm">{review.userName}</p>
+                        <p className="text-xs text-brand-gold font-medium">{role}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </section>

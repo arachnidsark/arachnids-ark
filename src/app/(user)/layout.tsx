@@ -144,8 +144,8 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           onMenuClick={() => setIsMobileOpen(true)}
         />
 
-        <main ref={mainRef} className="flex-1 md:overflow-y-auto pb-20 md:pb-0 py-4">
-          <div className="w-full">
+        <main ref={mainRef} className="flex-1 md:overflow-y-auto py-4">
+          <div className="w-full pb-20 md:pb-0">
             {hasAccessError ? (
               <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center">
                 <div className="h-20 w-20 rounded-full bg-brand-gold/10 flex items-center justify-center mb-6">
