@@ -181,6 +181,26 @@ export default function MyOrdersPage() {
                                 </div>
                               ))}
                             </div>
+                            <div className="pt-4 border-t border-border/30 space-y-1.5 px-1 max-w-sm">
+                              <div className="flex justify-between text-[11px] text-muted-foreground">
+                                <span>Subtotal</span>
+                                <span>{formatPrice(order.items.reduce((acc, item) => acc + (item.price * item.quantity), 0))}</span>
+                              </div>
+                              {order.discountAmount && order.discountAmount > 0 ? (
+                                <div className="flex justify-between text-[11px] text-emerald-500 font-medium">
+                                  <span>Discount ({order.coupon?.code})</span>
+                                  <span>-{formatPrice(order.discountAmount)}</span>
+                                </div>
+                              ) : null}
+                              <div className="flex justify-between text-[11px] text-muted-foreground">
+                                <span>Shipping</span>
+                                <span>{formatPrice(order.shippingCharge || 0)}</span>
+                              </div>
+                              <div className="flex justify-between text-xs font-bold text-brand-gold pt-1 border-t border-border/50 mt-1">
+                                <span>Total Amount</span>
+                                <span>{formatPrice(order.totalPrice)}</span>
+                              </div>
+                            </div>
                           </div>
 
                           {/* Shipping Info */}

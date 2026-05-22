@@ -29,6 +29,7 @@ const COLLECTION_MAP: Record<string, string> = {
   care_guides: 'care-guides',
   system_settings: 'system-settings',
   consultation_settings: 'consultation-settings',
+  coupons: 'coupons',
 };
 
 function ep(collection: string): string {
@@ -127,5 +128,19 @@ export const Db = {
       if (!res.ok) return null;
       return await res.json();
     } catch { return null; }
+  },
+
+  async validateCoupon(code: string, userId: string, cartItems: any[], subtotal: number): Promise<{ valid: boolean; error?: string; discountAmount?: number; coupon?: any }> {
+    try {
+      const res = await fetch(`${API_BASE}/coupons/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, userId, cartItems, subtotal }),
+      });
+      if (!res.ok) return { valid: false, error: 'Network error validating coupon' };
+      return await res.json();
+    } catch {
+      return { valid: false, error: 'Failed to validate coupon' };
+    }
   },
 };

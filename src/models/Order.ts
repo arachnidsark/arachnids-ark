@@ -30,6 +30,16 @@ const orderItemSchema = new Schema(
   { _id: false }
 );
 
+const couponAppliedSchema = new Schema(
+  {
+    code: { type: String, required: true },
+    discountType: { type: String, enum: ['percentage', 'flat'], required: true },
+    discountValue: { type: Number, required: true },
+    discountAmount: { type: Number, required: true },
+  },
+  { _id: false }
+);
+
 const orderSchema = new Schema(
   {
     _id: { type: String, required: true },
@@ -55,6 +65,8 @@ const orderSchema = new Schema(
     courierPartner: { type: String },
     cancellationReason: { type: String },
     emailsSent: [{ type: String }],
+    coupon: { type: couponAppliedSchema, default: null },
+    discountAmount: { type: Number, default: 0 },
   },
   {
     timestamps: true,

@@ -474,7 +474,9 @@ export default function AdminOrdersPage() {
 
     const newItems = editingOrderItems;
     const newShipping = editingShippingCharge;
-    const newTotalPrice = newItems.reduce((acc, item) => acc + (item.price * item.quantity), 0) + newShipping;
+    const itemsSubtotal = newItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    const discount = selectedOrder.discountAmount || 0;
+    const newTotalPrice = Math.max(0, itemsSubtotal + newShipping - discount);
 
     const updatedOrder = {
       ...selectedOrder,
@@ -926,9 +928,24 @@ export default function AdminOrdersPage() {
                               </div>
                             ))}
                             <div className="pt-2 px-2 space-y-1">
-                              <div className="flex justify-between text-[10px] text-muted-foreground"><span>Subtotal</span><span>{formatPrice(selectedOrder!.totalPrice - selectedOrder!.shippingCharge)}</span></div>
-                              <div className="flex justify-between text-[10px] text-muted-foreground"><span>Shipping</span><span>{formatPrice(selectedOrder!.shippingCharge)}</span></div>
-                              <div className="flex justify-between text-xs font-bold text-brand-gold pt-1 border-t border-border mt-1"><span>Total Amount</span><span>{formatPrice(selectedOrder!.totalPrice)}</span></div>
+                              <div className="flex justify-between text-[10px] text-muted-foreground">
+                                <span>Subtotal</span>
+                                <span>{formatPrice(selectedOrder!.items.reduce((acc, item) => acc + (item.price * item.quantity), 0))}</span>
+                              </div>
+                              {selectedOrder!.discountAmount && selectedOrder!.discountAmount > 0 ? (
+                                <div className="flex justify-between text-[10px] text-emerald-500 font-medium">
+                                  <span>Discount ({selectedOrder!.coupon?.code})</span>
+                                  <span>-{formatPrice(selectedOrder!.discountAmount)}</span>
+                                </div>
+                              ) : null}
+                              <div className="flex justify-between text-[10px] text-muted-foreground">
+                                <span>Shipping</span>
+                                <span>{formatPrice(selectedOrder!.shippingCharge)}</span>
+                              </div>
+                              <div className="flex justify-between text-xs font-bold text-brand-gold pt-1 border-t border-border mt-1">
+                                <span>Total Amount</span>
+                                <span>{formatPrice(selectedOrder!.totalPrice)}</span>
+                              </div>
                             </div>
                           </>
                         )}

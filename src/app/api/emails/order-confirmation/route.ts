@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     }
 
     const { items, totalPrice, shippingCharge, id: orderId, userName, userEmail } = order;
-    const subtotal = totalPrice - (shippingCharge || 0);
+    const subtotal = items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
     
     // Determine recipient based on Sandbox mode
     const recipientEmail = IS_SANDBOX_MODE ? TEST_EMAIL : userEmail;
@@ -60,6 +60,12 @@ export async function POST(req: Request) {
               <td colspan="2" style="padding: 10px; text-align: right; color: #718096;">Subtotal:</td>
               <td style="padding: 10px; text-align: right;">₹${subtotal}</td>
             </tr>
+            ${order.discountAmount && order.discountAmount > 0 ? `
+            <tr>
+              <td colspan="2" style="padding: 10px; text-align: right; color: #38a169;">Discount (${order.coupon?.code}):</td>
+              <td style="padding: 10px; text-align: right; color: #38a169; font-weight: bold;">-₹${order.discountAmount}</td>
+            </tr>
+            ` : ''}
             <tr>
               <td colspan="2" style="padding: 10px; text-align: right; color: #718096;">Shipping:</td>
               <td style="padding: 10px; text-align: right;">₹${shippingCharge || 0}</td>

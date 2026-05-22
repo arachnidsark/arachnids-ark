@@ -1,6 +1,6 @@
 import { 
   Home, ShoppingBag, GraduationCap, Calendar, BookOpen, Heart,
-  LayoutDashboard, Package, Users, Settings, ClipboardList, MessageSquare, DollarSign
+  LayoutDashboard, Package, Users, Settings, ClipboardList, MessageSquare, DollarSign, Ticket
 } from 'lucide-react';
 
 export const USER_NAV_ITEMS = [
@@ -28,6 +28,7 @@ export const ADMIN_NAV_ITEMS = [
   { label: 'Enrollments', href: '/admin/enrollments', icon: BookOpen, module: 'courses' },
   { label: 'Bookings', href: '/admin/bookings', icon: Calendar, module: 'consultations' },
   { label: 'Revenue', href: '/admin/revenue', icon: DollarSign },
+  { label: 'Coupons', href: '/admin/coupons', icon: Ticket },
   { label: 'Care Guides', href: '/admin/care-guides', icon: BookOpen },
   { label: 'Users', href: '/admin/users', icon: Users },
   { label: 'Consultation Settings', href: '/admin/consultations', icon: Calendar, module: 'consultations' },
@@ -52,6 +53,7 @@ export const PAGE_TITLES: Record<string, string> = {
   '/admin/enrollments': 'Course Enrollments',
   '/admin/bookings': 'Consultation Bookings',
   '/admin/revenue': 'Revenue Analytics',
+  '/admin/coupons': 'Discount Coupons',
   '/admin/care-guides': 'Care Guides Management',
   '/admin/users': 'User Management',
   '/admin/consultations': 'Consultation Settings',

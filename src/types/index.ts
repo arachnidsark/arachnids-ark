@@ -211,6 +211,8 @@ export interface Order {
   courierPartner?: string;
   cancellationReason?: string;
   emailsSent?: string[]; // Track which status emails have been sent
+  coupon?: CouponApplied | null; // Added for discount coupons
+  discountAmount?: number; // Added for discount coupons
   createdAt: string;
   updatedAt: string;
 }
@@ -369,3 +371,37 @@ export interface CareGuide {
   category: string;
   readTime: string;
 }
+
+// ============ COUPON ============
+export type DiscountType = 'percentage' | 'flat';
+export type CouponApplicableTo = 'all' | 'products' | 'courses' | 'consultations';
+
+export interface Coupon {
+  id: string;
+  code: string;
+  description: string;
+  discountType: DiscountType;
+  discountValue: number;
+  minOrderValue: number;
+  maxDiscount: number | null;       // null = no cap
+  maxUses: number;                  // 0 = unlimited
+  maxUsesPerUser: number;           // 0 = unlimited
+  usedCount: number;
+  usedBy: string[];
+  validFrom: string;
+  validUntil: string;
+  isActive: boolean;
+  applicableTo: CouponApplicableTo;
+  applicableCategories: string[];   // empty = all categories
+  autoApply: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CouponApplied {
+  code: string;
+  discountType: DiscountType;
+  discountValue: number;
+  discountAmount: number;
+}
+
