@@ -17,7 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { Db } from '@/lib/db';
 import { useAuthStore } from '@/store/auth-store';
 import { useNotificationStore } from '@/store/notification-store';
-import type { Product, Order } from '@/types';
+import type { Product, Order, Category } from '@/types';
 import { formatPrice } from '@/constants/pricing';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
@@ -49,6 +49,7 @@ export default function ProductDetailPage() {
   const { user, isAuthenticated } = useAuthStore();
   const { addNotification } = useNotificationStore();
   const [product, setProduct] = useState<Product | null>(null);
+  const [categoryDef, setCategoryDef] = useState<Category | null>(null);
   const [loading, setLoading] = useState(true);
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [message, setMessage] = useState('');
@@ -79,8 +80,14 @@ export default function ProductDetailPage() {
   useEffect(() => {
     (async () => {
       const p = await Db.getById<Product>('products', params.id as string);
+      let catDef = null;
+      if (p) {
+        const categories = await Db.getAll<Category>('categories');
+        catDef = categories.find(c => c.name === p.mainCategory) || null;
+      }
       setTimeout(async () => {
         setProduct(p);
+        setCategoryDef(catDef);
         setLoading(false);
         loadReviews(params.id as string, 'product');
   
@@ -250,16 +257,22 @@ export default function ProductDetailPage() {
           <div>
             <div className="flex flex-wrap gap-2 mb-3">
               <Badge variant="outline" className="border-white/30 bg-black/50 text-white text-[10px] uppercase tracking-wider backdrop-blur-sm">{product.mainCategory}</Badge>
-              <Badge variant="outline" className="border-white/30 bg-black/50 text-white text-[10px] capitalize backdrop-blur-sm">{product.category}</Badge>
-              {product.mainCategory === 'Tarantulas' && product.tarantulaMeta && (
-                <Badge variant="outline" className="border-brand-gold/40 bg-brand-gold/10 text-brand-gold text-[10px] capitalize backdrop-blur-sm">{product.tarantulaMeta.world}</Badge>
-              )}
-              {product.mainCategory === 'Scorpions' && product.scorpionMeta && (
-                <Badge variant="outline" className="border-red-400/40 bg-red-400/10 text-red-400 text-[10px] capitalize backdrop-blur-sm">{product.scorpionMeta.venomPotency} Venom</Badge>
-              )}
-              {product.mainCategory === 'Centipedes' && product.centipedeMeta && (
-                <Badge variant="outline" className="border-red-400/40 bg-red-400/10 text-red-400 text-[10px] capitalize backdrop-blur-sm">{product.centipedeMeta.venomPotency} Venom</Badge>
-              )}
+              <Badge variant="outline" className="border-white/30 bg-black/50 text-white text-[10px] capitalize backdrop-blur-sm">{product.category || 'General'}</Badge>
+              {categoryDef?.fields?.map(field => {
+                if (!field.showAsBadge) return null;
+                let value = product.customMeta?.[field.id];
+                if (!value) {
+                  if (product.tarantulaMeta && (product.tarantulaMeta as any)[field.id]) value = (product.tarantulaMeta as any)[field.id];
+                  else if (product.scorpionMeta && (product.scorpionMeta as any)[field.id]) value = (product.scorpionMeta as any)[field.id];
+                  else if (product.centipedeMeta && (product.centipedeMeta as any)[field.id]) value = (product.centipedeMeta as any)[field.id];
+                }
+                if (!value) return null;
+                return (
+                  <Badge key={field.id} variant="outline" className="border-brand-gold/40 bg-brand-gold/10 text-brand-gold text-[10px] capitalize backdrop-blur-sm">
+                    {Array.isArray(value) ? value.join(', ') : String(value)}
+                  </Badge>
+                );
+              })}
             </div>
             <h1 className="text-2xl sm:text-4xl font-bold mb-1 uppercase tracking-tight">{product.name}</h1>
             <p className="text-base sm:text-lg text-muted-foreground italic">{product.scientificName}</p>
@@ -332,86 +345,37 @@ export default function ProductDetailPage() {
               </CardContent>
             </Card>
 
-            {product.mainCategory === 'Tarantulas' && product.tarantulaMeta && (
-              <>
-                <Card className="border-border bg-card/50">
-                  <CardContent className="p-3 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
-                      <AlertTriangle className="h-4 w-4 text-red-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] text-muted-foreground">Temperament</p>
-                      <p className={`text-xs font-medium truncate ${temperamentColors[product.tarantulaMeta.temperament] || 'text-white'}`}>{product.tarantulaMeta.temperament}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="border-border bg-card/50">
+            {categoryDef?.fields?.map(field => {
+              if (field.showAsBadge) return null; // Already shown in badges area
+              let value = product.customMeta?.[field.id];
+              if (!value) {
+                if (product.tarantulaMeta && (product.tarantulaMeta as any)[field.id]) value = (product.tarantulaMeta as any)[field.id];
+                else if (product.scorpionMeta && (product.scorpionMeta as any)[field.id]) value = (product.scorpionMeta as any)[field.id];
+                else if (product.centipedeMeta && (product.centipedeMeta as any)[field.id]) value = (product.centipedeMeta as any)[field.id];
+              }
+              if (value === undefined || value === '') return null;
+              
+              // Handle boolean
+              if (field.type === 'boolean') {
+                 value = value ? 'Yes' : 'No';
+              } else if (Array.isArray(value)) {
+                 value = value.join(', ');
+              }
+
+              return (
+                <Card key={field.id} className="border-border bg-card/50">
                   <CardContent className="p-3 flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-brand-gold/10 flex items-center justify-center shrink-0">
                       <Zap className="h-4 w-4 text-brand-gold" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[10px] text-muted-foreground">Growth Rate</p>
-                      <p className="text-xs font-medium truncate">{product.tarantulaMeta.growthRate}</p>
+                      <p className="text-[10px] text-muted-foreground">{field.label}</p>
+                      <p className="text-xs font-medium truncate">{String(value)}</p>
                     </div>
                   </CardContent>
                 </Card>
-              </>
-            )}
-
-            {product.mainCategory === 'Scorpions' && product.scorpionMeta && (
-              <>
-                <Card className="border-border bg-card/50">
-                  <CardContent className="p-3 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
-                      <AlertTriangle className="h-4 w-4 text-red-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] text-muted-foreground">Venom</p>
-                      <p className="text-xs font-medium text-red-400 truncate">{product.scorpionMeta.venomPotency}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="border-border bg-card/50">
-                  <CardContent className="p-3 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
-                      <Bug className="h-4 w-4 text-purple-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] text-muted-foreground">Pincers</p>
-                      <p className="text-xs font-medium truncate">{product.scorpionMeta.pincerType}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
-            )}
-
-            {product.mainCategory === 'Centipedes' && product.centipedeMeta && (
-              <>
-                <Card className="border-border bg-card/50">
-                  <CardContent className="p-3 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
-                      <AlertTriangle className="h-4 w-4 text-red-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] text-muted-foreground">Venom</p>
-                      <p className="text-xs font-medium text-red-400 truncate">{product.centipedeMeta.venomPotency}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="border-border bg-card/50">
-                  <CardContent className="p-3 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
-                      <Bug className="h-4 w-4 text-green-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] text-muted-foreground">Leg Pairs</p>
-                      <p className="text-xs font-medium truncate">{product.centipedeMeta.legPairs}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
-            )}
+              );
+            })}
           </div>
 
           <div>

@@ -24,6 +24,8 @@ export interface ProductCardProps {
   onLike?: (e: React.MouseEvent) => void;
   /** Callback for when the add to cart button is clicked */
   onAddToCart?: (e: React.MouseEvent) => void;
+  /** The category definition for dynamic field rendering */
+  categoryDef?: import('@/types').Category;
   /** Custom class name */
   className?: string;
 }
@@ -40,6 +42,7 @@ export function ProductCard({
   isLiked,
   onLike,
   onAddToCart,
+  categoryDef,
   className
 }: ProductCardProps) {
   const totalStock = product.sizes?.reduce((acc, s) => acc + s.stock, 0) || 0;
@@ -104,30 +107,25 @@ export function ProductCard({
           </Badge>
           
           {/* Specific Meta Badges */}
-          {product.mainCategory === 'Tarantulas' && product.tarantulaMeta && (
-            <>
-              {product.tarantulaMeta.type && (
-                <Badge variant="outline" className="border-brand-gold/40 bg-black/80 text-brand-gold text-[9px] font-black uppercase tracking-widest backdrop-blur-md px-2 py-0.5 shadow-2xl w-fit">
-                  {product.tarantulaMeta.type}
-                </Badge>
-              )}
-              {product.tarantulaMeta.world && (
-                <Badge variant="outline" className="border-brand-gold/40 bg-black/80 text-brand-gold text-[9px] font-black uppercase tracking-widest backdrop-blur-md px-2 py-0.5 shadow-2xl w-fit">
-                  {product.tarantulaMeta.world}
-                </Badge>
-              )}
-            </>
-          )}
+          {categoryDef?.fields?.map(field => {
+            if (!field.showAsBadge) return null;
+            let value = product.customMeta?.[field.id];
+            
+            // Fallback to legacy
+            if (!value) {
+              if (product.tarantulaMeta && (product.tarantulaMeta as any)[field.id]) value = (product.tarantulaMeta as any)[field.id];
+              else if (product.scorpionMeta && (product.scorpionMeta as any)[field.id]) value = (product.scorpionMeta as any)[field.id];
+              else if (product.centipedeMeta && (product.centipedeMeta as any)[field.id]) value = (product.centipedeMeta as any)[field.id];
+            }
 
-          {(product.mainCategory === 'Scorpions' || product.mainCategory === 'Centipedes') && (
-            <>
-              {(product.scorpionMeta?.venomPotency || product.centipedeMeta?.venomPotency) && (
-                <Badge variant="outline" className="border-red-500/40 bg-black/80 text-red-400 text-[9px] font-black uppercase tracking-widest backdrop-blur-md px-2 py-0.5 shadow-2xl w-fit">
-                  {product.scorpionMeta?.venomPotency || product.centipedeMeta?.venomPotency} Venom
-                </Badge>
-              )}
-            </>
-          )}
+            if (!value) return null;
+
+            return (
+              <Badge key={field.id} variant="outline" className="border-brand-gold/40 bg-black/80 text-brand-gold text-[9px] font-black uppercase tracking-widest backdrop-blur-md px-2 py-0.5 shadow-2xl w-fit">
+                {Array.isArray(value) ? value.join(', ') : String(value)}
+              </Badge>
+            );
+          })}
         </div>
       </Link>
 

@@ -23,31 +23,7 @@ import { useFavoriteStore } from '@/store/favorite-store';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { formatPrice } from '@/constants/pricing';
-import type { Product, MainCategory, CareLevel } from '@/types';
-
-const CATEGORIES: TabOption[] = [
-  { value: 'All', label: 'All', icon: Bug },
-  { value: 'Tarantulas', label: 'Tarantulas', icon: Bug },
-  { value: 'Centipedes', label: 'Centipedes', icon: Bug },
-  { value: 'Scorpions', label: 'Scorpions', icon: Bug },
-];
-
-const HABITATS: { value: string; label: string }[] = [
-  { value: '', label: 'All Habitats' },
-  { value: 'terrestrial', label: 'Terrestrial' },
-  { value: 'arboreal', label: 'Arboreal' },
-  { value: 'fossorial', label: 'Fossorial' },
-  { value: 'tropical forest', label: 'Tropical Forest' },
-  { value: 'desert', label: 'Desert' },
-  { value: 'tropical', label: 'Tropical' },
-  { value: 'arid', label: 'Arid' },
-];
-
-const ORIGINS = [
-  { value: '', label: 'All Worlds' },
-  { value: 'new-world', label: 'New World' },
-  { value: 'old-world', label: 'Old World' },
-];
+import type { Product, CareLevel, Category } from '@/types';
 
 const CARE_LEVELS: { value: CareLevel | ''; label: string }[] = [
   { value: '', label: 'All Levels' },
@@ -57,51 +33,41 @@ const CARE_LEVELS: { value: CareLevel | ''; label: string }[] = [
   { value: 'expert', label: 'Expert' },
 ];
 
-const VENOM_POTENCIES = [
-  { value: '', label: 'All Potencies' },
-  { value: 'Mild', label: 'Mild' },
-  { value: 'Potent', label: 'Potent' },
-  { value: 'Medical', label: 'Medical Impact' },
-];
-
 function FilterPanel({ 
-  mainCategory, 
-  habitat, setHabitat, 
-  origin, setOrigin, 
+  categoryDef,
+  customFilters,
+  setCustomFilters,
   careLevel, setCareLevel, 
   sortBy, setSortBy, 
-  venomPotency, setVenomPotency,
   onReset
 }: any) {
-  const filteredHabitats = HABITATS.filter(h => {
-    if (!h.value) return true;
-    if (mainCategory === 'Tarantulas') return ['terrestrial', 'arboreal', 'fossorial'].includes(h.value);
-    if (mainCategory === 'Scorpions') return ['tropical forest', 'desert'].includes(h.value);
-    if (mainCategory === 'Centipedes') return ['tropical', 'arid'].includes(h.value);
-    return true;
-  });
 
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Habitat</label>
-        <SharedSelect options={filteredHabitats} value={habitat} onValueChange={(val) => setHabitat(val ?? '')} placeholder="All Habitats" />
-      </div>
-      {mainCategory === 'Tarantulas' && (
-        <div className="space-y-2">
-          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">World</label>
-          <SharedSelect options={ORIGINS} value={origin} onValueChange={(val) => setOrigin(val ?? '')} placeholder="All Worlds" />
-        </div>
-      )}
-      <div className="space-y-2">
         <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Care Level</label>
         <SharedSelect 
-          options={CARE_LEVELS.filter(c => !(mainCategory === 'Centipedes' && c.value === 'beginner'))} 
+          options={CARE_LEVELS} 
           value={careLevel} 
           onValueChange={(val) => setCareLevel(val ?? '')} 
           placeholder="All Levels" 
         />
       </div>
+
+      {categoryDef?.fields
+        .filter((f: any) => f.type === 'select')
+        .map((field: any) => (
+          <div key={field.id} className="space-y-2">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">{field.label}</label>
+            <SharedSelect 
+              options={[{ value: '', label: `All ${field.label}s` }, ...(field.options || []).map((o: string) => ({ value: o, label: o }))]}
+              value={customFilters[field.id] || ''} 
+              onValueChange={(val) => setCustomFilters((prev: any) => ({ ...prev, [field.id]: val ?? '' }))} 
+              placeholder={`All ${field.label}s`} 
+            />
+          </div>
+        ))}
+
       <div className="space-y-2">
         <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Sort By</label>
         <SharedSelect 
@@ -131,15 +97,16 @@ function FilterPanel({
 
 export default function ShopPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const { likedIds, toggleLike, isLiked } = useFavoriteStore();
   const [search, setSearch] = useState('');
   const [mainCategory, setMainCategory] = useState<string>('All');
-  const [habitat, setHabitat] = useState('');
-  const [origin, setOrigin] = useState('');
+  
   const [careLevel, setCareLevel] = useState('');
+  const [customFilters, setCustomFilters] = useState<Record<string, string>>({});
+  
   const [sortBy, setSortBy] = useState('');
-  const [venomPotency, setVenomPotency] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [quickSelectProduct, setQuickSelectProduct] = useState<Product | null>(null);
   const [selectedQuickSize, setSelectedQuickSize] = useState<number>(0);
@@ -166,10 +133,26 @@ export default function ShopPage() {
 
   useEffect(() => {
     setTimeout(async () => {
-      setProducts(await Db.getAll<Product>('products'));
+      const [prods, cats] = await Promise.all([
+        Db.getAll<Product>('products'),
+        Db.getAll<Category>('categories'),
+      ]);
+      setProducts(prods);
+      setCategories(cats);
       setLoading(false);
     }, 300);
   }, []);
+
+  const CATEGORIES: TabOption[] = useMemo(() => {
+    const tabs: TabOption[] = [{ value: 'All', label: 'All', icon: Bug }];
+    categories
+      .filter(c => c.isActive)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .forEach(c => tabs.push({ value: c.name, label: c.name, icon: Bug }));
+    return tabs;
+  }, [categories]);
+
+  const categoryDef = useMemo(() => categories.find(c => c.name === mainCategory), [categories, mainCategory]);
 
   const handleLike = async (e: React.MouseEvent, productId: string) => {
     e.preventDefault();
@@ -197,10 +180,8 @@ export default function ShopPage() {
   };
 
   useEffect(() => {
-    setHabitat('');
-    setOrigin('');
+    setCustomFilters({});
     setCareLevel('');
-    setVenomPotency('');
   }, [mainCategory]);
 
   const filtered = useMemo(() => {
@@ -209,14 +190,21 @@ export default function ShopPage() {
       const q = search.toLowerCase();
       result = result.filter(p => p.name.toLowerCase().includes(q) || p.scientificName.toLowerCase().includes(q));
     }
-    if (habitat) {
-      result = result.filter(p => p.category === habitat || p.scorpionMeta?.habitatType === habitat || p.centipedeMeta?.habitatType === habitat);
-    }
-    if (origin) result = result.filter(p => p.origin === origin);
     if (careLevel) result = result.filter(p => p.careLevel === careLevel);
-    if (venomPotency) {
-      result = result.filter(p => p.scorpionMeta?.venomPotency === venomPotency || p.centipedeMeta?.venomPotency === venomPotency);
-    }
+    
+    // Apply custom filters
+    Object.entries(customFilters).forEach(([key, value]) => {
+      if (value) {
+        result = result.filter(p => {
+          if (p.customMeta && p.customMeta[key] === value) return true;
+          // Legacy check
+          if (p.tarantulaMeta && (p.tarantulaMeta as any)[key] === value) return true;
+          if (p.scorpionMeta && (p.scorpionMeta as any)[key] === value) return true;
+          if (p.centipedeMeta && (p.centipedeMeta as any)[key] === value) return true;
+          return false;
+        });
+      }
+    });
 
     const getMinPrice = (p: Product) => (p.sizes?.length > 0 ? Math.min(...p.sizes.map(s => s.price)) : 0);
     const sort = sortBy || 'name';
@@ -227,13 +215,13 @@ export default function ShopPage() {
       default: result.sort((a, b) => a.name.localeCompare(b.name));
     }
     return result;
-  }, [products, search, mainCategory, habitat, origin, careLevel, sortBy, venomPotency]);
+  }, [products, search, mainCategory, careLevel, customFilters, sortBy]);
 
   const clearFilters = () => {
-    setHabitat(''); setOrigin(''); setCareLevel(''); setVenomPotency(''); setSearch(''); setSortBy('');
+    setCustomFilters({}); setCareLevel(''); setSearch(''); setSortBy('');
   };
 
-  const activeFilters = [habitat, origin, careLevel, venomPotency, search].filter(Boolean).length;
+  const activeFilters = [careLevel, search, ...Object.values(customFilters)].filter(Boolean).length;
 
   const handleAddToCart = (e: React.MouseEvent, product: Product) => {
     e.preventDefault(); e.stopPropagation();
@@ -278,24 +266,22 @@ export default function ShopPage() {
         </div>
 
         <div className="hidden md:flex gap-2">
-          <SharedSelect 
-            value={habitat} onValueChange={(val) => setHabitat(val ?? '')} 
-            placeholder="Habitats" className="w-[150px]" 
-            options={HABITATS.filter(h => {
-              if (!h.value) return true;
-              if (mainCategory === 'Tarantulas') return ['terrestrial', 'arboreal', 'fossorial'].includes(h.value);
-              if (mainCategory === 'Scorpions') return ['tropical forest', 'desert'].includes(h.value);
-              if (mainCategory === 'Centipedes') return ['tropical', 'arid'].includes(h.value);
-              return true;
-            })} 
-          />
-          {mainCategory === 'Tarantulas' && (
-            <SharedSelect value={origin} onValueChange={(val) => setOrigin(val ?? '')} placeholder="Worlds" className="w-[150px]" options={ORIGINS} />
-          )}
-          <SharedSelect value={careLevel} onValueChange={(val) => setCareLevel(val ?? '')} placeholder="All Levels" className="w-[160px]" options={CARE_LEVELS.filter(c => !(mainCategory === 'Centipedes' && c.value === 'beginner'))} />
-          {(mainCategory === 'Scorpions' || mainCategory === 'Centipedes') && (
-            <SharedSelect value={venomPotency} onValueChange={(val) => setVenomPotency(val ?? '')} placeholder="Potency" className="w-[160px]" options={VENOM_POTENCIES} />
-          )}
+          <SharedSelect value={careLevel} onValueChange={(val) => setCareLevel(val ?? '')} placeholder="All Levels" className="w-[160px]" options={CARE_LEVELS} />
+          
+          {categoryDef?.fields
+            .filter(f => f.type === 'select')
+            .slice(0, 3) // Show max 3 filters in the top bar to save space
+            .map(field => (
+              <SharedSelect 
+                key={field.id}
+                value={customFilters[field.id] || ''} 
+                onValueChange={(val) => setCustomFilters(prev => ({ ...prev, [field.id]: val ?? '' }))} 
+                placeholder={field.label} 
+                className="w-[150px]" 
+                options={[{ value: '', label: `All ${field.label}s` }, ...(field.options || []).map(o => ({ value: o, label: o }))]} 
+              />
+          ))}
+          
           <SharedSelect 
             value={sortBy} onValueChange={(val) => setSortBy(val ?? '')} 
             placeholder="Sort By" className="w-[180px]" 
@@ -331,9 +317,11 @@ export default function ShopPage() {
           dismissible={true}
         >
           <FilterPanel 
-            mainCategory={mainCategory} habitat={habitat} setHabitat={setHabitat} 
-            origin={origin} setOrigin={setOrigin} careLevel={careLevel} setCareLevel={setCareLevel} 
-            sortBy={sortBy} setSortBy={setSortBy} venomPotency={venomPotency} setVenomPotency={setVenomPotency} 
+            categoryDef={categoryDef}
+            customFilters={customFilters}
+            setCustomFilters={setCustomFilters}
+            careLevel={careLevel} setCareLevel={setCareLevel} 
+            sortBy={sortBy} setSortBy={setSortBy} 
             onReset={clearFilters}
           />
         </Modal>
@@ -348,7 +336,7 @@ export default function ShopPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filtered.map((product) => (
-            <ProductCard key={product.id} product={product} isLiked={isLiked(product.id, 'product')} onLike={(e) => handleLike(e, product.id)} onAddToCart={(e) => handleAddToCart(e, product)} />
+            <ProductCard key={product.id} product={product} categoryDef={categories.find(c => c.name === product.mainCategory)} isLiked={isLiked(product.id, 'product')} onLike={(e) => handleLike(e, product.id)} onAddToCart={(e) => handleAddToCart(e, product)} />
           ))}
         </div>
       )}

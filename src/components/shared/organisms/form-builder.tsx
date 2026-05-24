@@ -42,8 +42,8 @@ export interface FormBuilderProps<T extends FieldValues> {
   className?: string;
   /** Optional class for the fields grid */
   gridClassName?: string;
-  /** Optional children (e.g., secondary buttons, links) */
-  children?: React.ReactNode;
+  /** Optional children (e.g., secondary buttons, links, or dynamic sections requiring form state) */
+  children?: React.ReactNode | ((methods: import('react-hook-form').UseFormReturn<T>) => React.ReactNode);
   /** Alignment for the submit button */
   submitAlignment?: 'left' | 'center' | 'right';
 }
@@ -105,7 +105,7 @@ export function FormBuilder<T extends FieldValues>({
         {/* Custom Sections (Children) */}
         {children && (
           <div className="space-y-6">
-            {children}
+            {typeof children === 'function' ? children(methods) : children}
           </div>
         )}
 

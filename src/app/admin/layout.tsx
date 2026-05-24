@@ -107,7 +107,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   return (
-    <div className="flex min-h-screen md:h-[100dvh] md:overflow-hidden bg-background">
+    <div className="flex h-[100dvh] overflow-hidden bg-background">
       {/* Desktop Sidebar */}
       <aside className="hidden md:block shrink-0 relative z-50">
         <Sidebar
@@ -148,7 +148,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </Modal>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 md:overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Header
           showMobileMenu
           onMenuClick={() => setIsMobileOpen(true)}
@@ -163,7 +163,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         />
         <NotificationCenter open={showNotifications} onOpenChange={setShowNotifications} />
 
-        <main className="flex-1 md:overflow-y-auto p-4 md:p-8 py-4 custom-scrollbar">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 py-4 custom-scrollbar">
           <div className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
             {children}
           </div>

@@ -30,6 +30,7 @@ const COLLECTION_MAP: Record<string, string> = {
   system_settings: 'system-settings',
   consultation_settings: 'consultation-settings',
   coupons: 'coupons',
+  categories: 'categories',
 };
 
 function ep(collection: string): string {

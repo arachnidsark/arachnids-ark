@@ -17,4 +17,5 @@ export { ConsultationSettingsModel } from './ConsultationSettings';
 export { RevenueModel } from './Revenue';
 export { FavoriteModel } from './Favorite';
 export { CouponModel } from './Coupon';
+export { CategoryModel } from './Category';
 

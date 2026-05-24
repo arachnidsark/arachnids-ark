@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Db } from '@/lib/db';
-import type { Product, Course, CareGuide } from '@/types';
+import type { Product, Course, CareGuide, Category } from '@/types';
 import { formatPrice } from '@/constants/pricing';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -157,6 +157,7 @@ function HeroSection() {
 // ========== FEATURED TARANTULAS ==========
 function FeaturedTarantulas() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { isLiked: checkIsLiked, toggleLike } = useFavoriteStore();
   const { isAuthenticated } = useAuthStore();
@@ -167,6 +168,8 @@ function FeaturedTarantulas() {
       (async () => {
       setIsLoading(true);
       const all = await Db.getAll<Product>('products');
+      const cats = await Db.getAll<Category>('categories');
+      setCategories(cats);
       setProducts(all.filter(p => p.featured && p.isVisible !== false).slice(0, 4));
       setIsLoading(false);
       })();
@@ -208,7 +211,8 @@ function FeaturedTarantulas() {
   };
 
   if (!isVisible('products')) return null;
-  if (!isLoading && products.length === 0) return null;
+  if (isLoading) return null;
+  if (products.length === 0) return null;
 
   return (
     <section className="py-12 md:py-20 relative">
@@ -292,50 +296,21 @@ function FeaturedTarantulas() {
                         {product.mainCategory}
                       </Badge>
                       
-                      {product.mainCategory === 'Tarantulas' && product.tarantulaMeta && (
-                        <>
-                          {product.tarantulaMeta.type && (
-                            <Badge variant="outline" className="border-brand-gold/40 bg-black/80 text-brand-gold text-[9px] font-black uppercase tracking-widest backdrop-blur-md px-2 py-0.5 shadow-2xl w-fit">
-                              {product.tarantulaMeta.type}
-                            </Badge>
-                          )}
-                          {product.tarantulaMeta.world && (
-                            <Badge variant="outline" className="border-brand-gold/40 bg-black/80 text-brand-gold text-[9px] font-black uppercase tracking-widest backdrop-blur-md px-2 py-0.5 shadow-2xl w-fit">
-                              {product.tarantulaMeta.world}
-                            </Badge>
-                          )}
-                        </>
-                      )}
-
-                      {product.mainCategory === 'Scorpions' && product.scorpionMeta && (
-                        <>
-                          {product.scorpionMeta.venomPotency && (
-                            <Badge variant="outline" className="border-red-500/40 bg-black/80 text-red-400 text-[9px] font-black uppercase tracking-widest backdrop-blur-md px-2 py-0.5 shadow-2xl w-fit">
-                              {product.scorpionMeta.venomPotency} Venom
-                            </Badge>
-                          )}
-                          {product.scorpionMeta.habitatType && (
-                            <Badge variant="outline" className="border-purple-500/40 bg-black/80 text-purple-400 text-[9px] font-black uppercase tracking-widest backdrop-blur-md px-2 py-0.5 shadow-2xl w-fit">
-                              {product.scorpionMeta.habitatType}
-                            </Badge>
-                          )}
-                        </>
-                      )}
-
-                      {product.mainCategory === 'Centipedes' && product.centipedeMeta && (
-                        <>
-                          {product.centipedeMeta.venomPotency && (
-                            <Badge variant="outline" className="border-red-500/40 bg-black/80 text-red-400 text-[9px] font-black uppercase tracking-widest backdrop-blur-md px-2 py-0.5 shadow-2xl w-fit">
-                              {product.centipedeMeta.venomPotency} Venom
-                            </Badge>
-                          )}
-                          {product.centipedeMeta.habitatType && (
-                            <Badge variant="outline" className="border-green-500/40 bg-black/80 text-green-400 text-[9px] font-black uppercase tracking-widest backdrop-blur-md px-2 py-0.5 shadow-2xl w-fit">
-                              {product.centipedeMeta.habitatType}
-                            </Badge>
-                          )}
-                        </>
-                      )}
+                      {categories.find(c => c.name === product.mainCategory)?.fields?.map(field => {
+                        if (!field.showAsBadge) return null;
+                        let value = product.customMeta?.[field.id];
+                        if (!value) {
+                          if (product.tarantulaMeta && (product.tarantulaMeta as any)[field.id]) value = (product.tarantulaMeta as any)[field.id];
+                          else if (product.scorpionMeta && (product.scorpionMeta as any)[field.id]) value = (product.scorpionMeta as any)[field.id];
+                          else if (product.centipedeMeta && (product.centipedeMeta as any)[field.id]) value = (product.centipedeMeta as any)[field.id];
+                        }
+                        if (!value) return null;
+                        return (
+                          <Badge key={field.id} variant="outline" className="border-brand-gold/40 bg-black/80 text-brand-gold text-[9px] font-black uppercase tracking-widest backdrop-blur-md px-2 py-0.5 shadow-2xl w-fit">
+                            {Array.isArray(value) ? value.join(', ') : String(value)}
+                          </Badge>
+                        );
+                      })}
                     </div>
                   </div>
                   <CardContent className="p-4 space-y-2">
@@ -394,7 +369,8 @@ function FeaturedCourses() {
   }, []);
 
   if (!isVisible('courses')) return null;
-  if (!isLoading && courses.length === 0) return null;
+  if (isLoading) return null;
+  if (courses.length === 0) return null;
 
   return (
     <section className="py-12 md:py-20 bg-card/30">
@@ -493,7 +469,8 @@ function CareGuidesPreview() {
   })();
   }, []);
 
-  if (!isLoading && guides.length === 0) return null;
+  if (isLoading) return null;
+  if (guides.length === 0) return null;
 
   return (
     <section className="py-12 md:py-20">
@@ -613,20 +590,7 @@ function Testimonials() {
 
   const approvedReviews = reviews.filter(r => r.status === 'approved').slice(0, 3);
 
-  if (isLoading) {
-    return (
-      <section className="py-12 md:py-20 bg-card/30">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-48 rounded-2xl bg-card/20 animate-pulse border border-border" />
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
+  if (isLoading) return null;
   if (approvedReviews.length === 0) return null;
 
   return (

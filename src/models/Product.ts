@@ -1,9 +1,11 @@
 import mongoose, { Schema } from 'mongoose';
 
 /**
- * Product model — represents livestock items (Tarantulas, Scorpions, Centipedes).
- * Each product has category-specific metadata stored as embedded subdocuments.
- * Supports multiple size variants with individual price/stock.
+ * Product model — represents livestock items.
+ * Each product belongs to a dynamic category and stores category-specific
+ * metadata in the `customMeta` mixed field.
+ * Legacy metadata schemas (tarantulaMeta, scorpionMeta, centipedeMeta)
+ * are kept for backwards compatibility.
  */
 
 const productSizeSchema = new Schema(
@@ -55,7 +57,7 @@ const productSchema = new Schema(
     _id: { type: String, required: true },
     name: { type: String, required: true, trim: true },
     scientificName: { type: String, required: true, trim: true },
-    mainCategory: { type: String, enum: ['Tarantulas', 'Centipedes', 'Scorpions'], required: true },
+    mainCategory: { type: String, required: true },
     careLevel: { type: String, enum: ['beginner', 'intermediate', 'advanced', 'expert'], required: true },
     humidity: { type: String },
     temperature: { type: String },
@@ -68,7 +70,10 @@ const productSchema = new Schema(
     sizes: [productSizeSchema],
     likes: { type: Number, default: 0 },
 
-    // Category-specific metadata (only one populated per product)
+    // Generic category metadata (new system)
+    customMeta: { type: Schema.Types.Mixed },
+
+    // Legacy category-specific metadata (kept for backwards compatibility)
     tarantulaMeta: { type: tarantulaMetaSchema },
     scorpionMeta: { type: scorpionMetaSchema },
     centipedeMeta: { type: centipedeMetaSchema },

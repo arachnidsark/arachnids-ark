@@ -18,7 +18,31 @@ export type SafeUser = Omit<User, 'password'>;
 // ============ PRODUCT ============
 export type ProductType = 'terrestrial' | 'arboreal' | 'fossorial' | 'tropical forest' | 'desert' | 'tropical' | 'arid';
 export type ProductOrigin = 'new-world' | 'old-world';
-export type MainCategory = 'Tarantulas' | 'Centipedes' | 'Scorpions';
+// MainCategory is now a dynamic string from the categories collection
+export type MainCategory = string;
+
+// ============ CATEGORY ============
+export type CategoryFieldType = 'text' | 'select' | 'number' | 'boolean' | 'textarea' | 'multi-select';
+
+export interface CategoryField {
+  id: string;
+  label: string;
+  type: CategoryFieldType;
+  options?: string[];
+  required: boolean;
+  showAsBadge: boolean;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  icon?: string;
+  fields: CategoryField[];
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export type CareLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
 export type Temperament = 'docile' | 'semi-aggressive' | 'aggressive' | 'defensive';
@@ -89,7 +113,10 @@ export interface Product {
   sizes: ProductSize[];
   likes: number;
 
-  // Entity-specific metadata (only one will be populated based on mainCategory)
+  // Generic metadata map — keys are field IDs from the category definition
+  customMeta?: Record<string, any>;
+
+  // Legacy entity-specific metadata (kept for backwards compatibility)
   tarantulaMeta?: TarantulaMetadata;
   scorpionMeta?: ScorpionMetadata;
   centipedeMeta?: CentipedeMetadata;

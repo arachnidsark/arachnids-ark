@@ -1,6 +1,6 @@
 import { 
   Home, ShoppingBag, GraduationCap, Calendar, BookOpen, Heart,
-  LayoutDashboard, Package, Users, Settings, ClipboardList, MessageSquare, DollarSign, Ticket
+  LayoutDashboard, Package, Users, Settings, ClipboardList, MessageSquare, DollarSign, Ticket, FolderTree
 } from 'lucide-react';
 
 export const USER_NAV_ITEMS = [
@@ -21,6 +21,7 @@ export const MOBILE_NAV_ITEMS = [
 
 export const ADMIN_NAV_ITEMS = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  { label: 'Categories', href: '/admin/categories', icon: FolderTree, module: 'products' },
   { label: 'Products', href: '/admin/products', icon: Package, module: 'products' },
   { label: 'Reviews', href: '/admin/reviews', icon: MessageSquare, module: 'products' },
   { label: 'Courses', href: '/admin/courses', icon: GraduationCap, module: 'courses' },
@@ -46,6 +47,7 @@ export const DASHBOARD_NAV_ITEMS = [
 ];
 export const PAGE_TITLES: Record<string, string> = {
   '/admin': 'Dashboard Overview',
+  '/admin/categories': 'Product Categories',
   '/admin/products': 'Products Management',
   '/admin/reviews': 'Customer Reviews',
   '/admin/courses': 'Courses Management',
